@@ -7,4 +7,5 @@ Example statement looks like this:
 @annotation EXAMPLE
 ```
 
-
+Annotations always have to be at the top; otherwise they're not detected. You can also put multiple annotations
+on the same statement since only 1 statement is allowed
