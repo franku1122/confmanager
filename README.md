@@ -1,6 +1,7 @@
 # confmanager
 
 An optimized .cfg file reader / writer, used in my projects ( and games ).
+The values are stored as a string, so you have to convert them to the desired type
 
 ## Features
 

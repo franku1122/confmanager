@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using System.IO;
 
@@ -10,6 +11,7 @@ public sealed class CfgFile
 {
     private ILogger _logger = new DefaultLogger();
     private Dictionary<string, string>? _loadedConfig = null;
+    private Dictionary<string, string>? _editedConfig = null;
 
     /// <summary>
     /// Replaces the logger with <paramref name="newLogger"/>
