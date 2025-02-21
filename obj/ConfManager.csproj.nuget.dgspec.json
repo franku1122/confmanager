@@ -1,0 +1,61 @@
+{
+  "format": 1,
+  "restore": {
+    "/home/gamer/Pulpit/foldery/git/confmanager/ConfManager.csproj": {}
+  },
+  "projects": {
+    "/home/gamer/Pulpit/foldery/git/confmanager/ConfManager.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/gamer/Pulpit/foldery/git/confmanager/ConfManager.csproj",
+        "projectName": "ConfManager",
+        "projectPath": "/home/gamer/Pulpit/foldery/git/confmanager/ConfManager.csproj",
+        "packagesPath": "/home/gamer/.nuget/packages/",
+        "outputPath": "/home/gamer/Pulpit/foldery/git/confmanager/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/gamer/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.112/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
