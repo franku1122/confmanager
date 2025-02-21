@@ -11,3 +11,4 @@ For more details on each feature, check the docs.
 - [ ] Customizable bools
 - [ ] Customizable comment characters
 - [ ] Customizable key/value separator
+- [x] Customizable logger ( eg. use `GD.Print` instead of `Console.WriteLine` )
