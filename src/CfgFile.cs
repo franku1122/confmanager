@@ -11,19 +11,6 @@ public sealed class CfgFile
     private ILogger _logger = new DefaultLogger();
     private Dictionary<string, string>? _loadedConfig = null;
 
-    public CfgFile()
-    {
-        // default stuff
-    }
-
-    /// <summary>
-    /// Opens a config file
-    /// </summary>
-    public CfgFile(string path)
-    {
-        OpenFile(path);
-    }
-
     /// <summary>
     /// Replaces the logger with <paramref name="newLogger"/>
     /// </summary>
@@ -36,8 +23,8 @@ public sealed class CfgFile
     /// Opens a config file
     /// </summary>
     /// <param name="path">Path to the config file</param>
-    public void OpenFile(string path)
+    public OperationResult OpenFile(string path)
     {
-        
+        return OperationResult.Ok;
     }
 }
