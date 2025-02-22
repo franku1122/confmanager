@@ -5,5 +5,8 @@ namespace ConfManager;
 /// </summary>
 public interface ILogger
 {
+    /// <summary>
+    /// Prints <paramref name="msg"/> into the output ( determined by <paramref name="type"/> )
+    /// </summary>
     public void Put(LogType type, string msg);
 }

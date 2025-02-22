@@ -6,6 +6,9 @@ namespace ConfManager;
 /// </summary>
 public sealed class DefaultLogger : ILogger
 {
+    /// <summary>
+    /// Default print to the output ( which is always Console.WriteLine )
+    /// </summary>
     public void Put(LogType type, string msg)
     {
         switch (type)
