@@ -31,6 +31,21 @@ public sealed class CfgFile
     }
 
     /// <summary>
+    /// Returns annotation <paramref name="name"/> or null if not found
+    /// </summary>
+    public string? GetAnnotation(string name)
+    {
+        if (_annotations != null)
+        {
+            foreach (string annotation in _annotations)
+            {
+                if (annotation == "name") { return annotation; }
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
     /// Returns the loaded config
     /// </summary>
     public Dictionary<string, string>? GetLoadedConfig()
