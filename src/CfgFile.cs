@@ -173,6 +173,17 @@ public sealed class CfgFile
     }
 
     /// <summary>
+    /// Initializes a blank CfgFile instance, allowing you to use the class without loading a proper file
+    /// </summary>
+    /// <returns>Result of the operation</returns>
+    public OperationResult CreateFile()
+    {
+        _loadedConfig = new();
+        _loadedAnnotations = new();
+        return OperationResult.Ok;
+    }
+
+    /// <summary>
     /// Opens a config file
     /// </summary>
     /// <param name="path">Path to the config file</param>
