@@ -173,6 +173,40 @@ public sealed class CfgFile
     }
 
     /// <summary>
+    /// Exactly the same as <see cref="RemoveModifiedValue"/>, but removes a value from the loaded file.
+    /// </summary>
+    /// <param name="key">The value</param>
+    /// <returns>Returns <see cref="OperationResult"/></returns>
+    public OperationResult RemoveLoadedValue(string key)
+    {
+        if (_loadedConfig != null && _loadedConfig.ContainsKey(key))
+        {
+            _loadedConfig.Remove(key);
+
+            return OperationResult.Ok;
+        }
+
+        return OperationResult.Error;
+    }
+
+    /// <summary>
+    /// Exactly the same as <see cref="RemoveModifiedAnnotation"/>, but removes an annotation from the loaded file.
+    /// </summary>
+    /// <param name="annotation">The annotation</param>
+    /// <returns>Returns <see cref="OperationResult"/></returns>
+    public OperationResult RemoveLoadedAnnotation(string annotation)
+    {
+        if (_loadedAnnotations != null && _loadedAnnotations.Contains(annotation))
+        {
+            _loadedAnnotations.Remove(annotation);
+
+            return OperationResult.Ok;
+        }
+
+        return OperationResult.Error;
+    }
+
+    /// <summary>
     /// Initializes a blank CfgFile instance, allowing you to use the class without loading a proper file
     /// </summary>
     /// <returns>Result of the operation</returns>
