@@ -11,11 +11,11 @@ public sealed class CfgFile
 {
     private ILogger _logger = new DefaultLogger();
     private Dictionary<string, string>? _loadedConfig = null;
-    private Dictionary<string, string>? _editedConfig = null;
+    private Dictionary<string, string> _editedConfig = new();
     private List<string>? _loadedAnnotations = null; // not a list because this isnt supposed to change
-    private List<string>? _editedAnnotations = null;
-    private HashSet<string>? _pendingRemovalConfig = null;
-    private HashSet<string>? _pendingRemovalAnnotations = null;
+    private List<string> _editedAnnotations = new();
+    private HashSet<string> _pendingRemovalConfig = new();
+    private HashSet<string> _pendingRemovalAnnotations = new();
 
     /// <summary>
     /// Replaces the logger with <paramref name="newLogger"/>
@@ -26,7 +26,7 @@ public sealed class CfgFile
     }
 
     /// <summary>
-    /// Returns all annotations found in the config file. May return null if nothing was found
+    /// Returns all annotations found in the config file
     /// </summary>
     public List<string>? GetAnnotations()
     {
@@ -34,9 +34,9 @@ public sealed class CfgFile
     }
 
     /// <summary>
-    /// Returns all edited annotations or null if nothing was edited
+    /// Returns all edited annotations
     /// </summary>
-    public List<string>? GetEditedAnnotations()
+    public List<string> GetEditedAnnotations()
     {
         return _editedAnnotations;
     }
@@ -68,7 +68,7 @@ public sealed class CfgFile
     /// Returns the edited config. If nothing was edited, it's null. If a config is saved, the edited config is merged with the loaded one,
     /// and the edited config is set to null.
     /// </summary>
-    public Dictionary<string, string>? GetEditedConfig()
+    public Dictionary<string, string> GetEditedConfig()
     {
         return _editedConfig;
     }
@@ -82,26 +82,21 @@ public sealed class CfgFile
     /// <returns>Returns <see cref="OperationResult"/></returns>
     public OperationResult AddModifiedValue(string key, string value, bool terminateRemoval = true)
     {
-        if (_editedConfig != null)
+        if (!_editedConfig.ContainsKey(key))
         {
-            if (!_editedConfig.ContainsKey(key))
+            _editedConfig.TryAdd(key, value);
+
+            if (terminateRemoval)
             {
-                _editedConfig?.TryAdd(key, value);
-
-                if (terminateRemoval)
+                if (_pendingRemovalConfig.Contains(key))
                 {
-                    if (_pendingRemovalConfig != null)
-                    {
-                        if (_pendingRemovalConfig.Contains(key))
-                        {
-                            _pendingRemovalConfig.Remove(key);
-                        }
-                    }
+                    _pendingRemovalConfig.Remove(key);
                 }
-
-                return OperationResult.Ok;
             }
+
+            return OperationResult.Ok;
         }
+        
         return OperationResult.Error;
     }
 
@@ -113,25 +108,19 @@ public sealed class CfgFile
     /// <returns>Returns <see cref="OperationResult"/></returns>
     public OperationResult AddModifiedAnnotation(string annotation, bool terminateRemoval = true)
     {
-        if (_editedAnnotations != null)
+        if (!_editedAnnotations.Contains(annotation))
         {
-            if (_editedAnnotations?.Contains(annotation) != null)
+            _editedAnnotations.Add(annotation);
+
+            if (terminateRemoval)
             {
-                _editedAnnotations?.Add(annotation);
-
-                if (terminateRemoval)
+                if (_pendingRemovalAnnotations.Contains(annotation))
                 {
-                    if (_pendingRemovalAnnotations != null)
-                    {
-                        if (_pendingRemovalAnnotations.Contains(annotation))
-                        {
-                            _pendingRemovalAnnotations.Remove(annotation);
-                        }
-                    }
+                    _pendingRemovalAnnotations.Remove(annotation);
                 }
-
-                return OperationResult.Ok;
             }
+
+            return OperationResult.Ok;
         }
 
         return OperationResult.Error;
@@ -145,19 +134,16 @@ public sealed class CfgFile
     /// <returns>Returns <see cref="OperationResult"/></returns>
     public OperationResult RemoveModifiedValue(string key, bool pendRemoval = true)
     {
-        if (_editedConfig != null)
+        if (_editedConfig.ContainsKey(key))
         {
-            if (_editedConfig.ContainsKey(key))
+            _editedConfig.Remove(key);
+
+            if (pendRemoval)
             {
-                _editedConfig.Remove(key);
-
-                if (pendRemoval)
-                {
-                    _pendingRemovalConfig?.Add(key);
-                }
-
-                return OperationResult.Ok;
+                _pendingRemovalConfig.Add(key);
             }
+
+            return OperationResult.Ok;
         }
 
         return OperationResult.Error;
@@ -171,19 +157,16 @@ public sealed class CfgFile
     /// <returns>Returns <see cref="OperationResult"/></returns>
     public OperationResult RemoveModifiedAnnotation(string annotation, bool pendRemoval = true)
     {
-        if (_editedAnnotations != null)
+        if (_editedAnnotations.Contains(annotation))
         {
-            if (_editedAnnotations.Contains(annotation))
+            _editedAnnotations.Remove(annotation);
+
+            if (pendRemoval)
             {
-                _editedAnnotations.Remove(annotation);
-
-                if (pendRemoval)
-                {
-                    _pendingRemovalAnnotations?.Add(annotation);
-                }
-
-                return OperationResult.Ok;
+                _pendingRemovalAnnotations.Add(annotation);
             }
+
+            return OperationResult.Ok;
         }
 
         return OperationResult.Error;
@@ -200,9 +183,6 @@ public sealed class CfgFile
         try
         {
             FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None);
-
-            _pendingRemovalConfig = new();
-            _pendingRemovalAnnotations = new();
 
             using (StreamReader reader = new(stream))
             {
@@ -301,17 +281,82 @@ public sealed class CfgFile
     }
 
     /// <summary>
+    /// Saves the config file at <paramref name="path"/>
+    /// </summary>
+    /// <param name="path">Path where the file will be created</param>
+    /// <param name="overwriteIfExists">Overwrite an existing file if there is one</param>
+    /// <param name="applyBeforeSave">Runs <c>ApplyModified</c> before saving</param>
+    /// <returns>Result of the operation as <see cref="OperationResult"/>. Returns Ok always</returns>
+    public OperationResult SaveFile(string path, bool applyBeforeSave = false, bool overwriteIfExists = true)
+    {
+        bool overwrite = !overwriteIfExists;
+
+        if (applyBeforeSave)
+        {
+            ApplyModified();
+        }
+        
+        try
+        {
+            using (StreamWriter writer = new(path, overwrite))
+            {
+                // first add annotations
+                if (_loadedAnnotations != null && _loadedAnnotations.Count > 0)
+                {
+                    string annotations = $"@annotation {string.Join(", ", _loadedAnnotations)}";
+                    writer.WriteLine(annotations);
+                }
+
+                // add some space
+                writer.WriteLine();
+
+                if (_loadedConfig != null)
+                {
+                    foreach (KeyValuePair<string, string> kvp in _loadedConfig)
+                    {
+                        if (CfgCustomizer.KeyValueSeparator != ' ')
+                        {
+                            writer.WriteLine($"{kvp.Key} {CfgCustomizer.KeyValueSeparator} {kvp.Value}");
+                        }
+                        else // spaces are handled differently than other stuff so no extra spaces are added around the kv separator
+                        {
+                            writer.WriteLine($"{kvp.Key}{CfgCustomizer.KeyValueSeparator}{kvp.Value}");
+                        }
+                    }
+                }
+            }
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _logger.Put(LogType.Error, $"Cannot access {path}");
+            return OperationResult.NoPermission;
+        }
+        catch (PathTooLongException)
+        {
+            _logger.Put(LogType.Error, "Path is too long");
+            return OperationResult.Error;
+        }
+        catch (IOException)
+        {
+            _logger.Put(LogType.Error, "IOException has been caught; file is probably in use");
+            return OperationResult.Error;
+        }
+
+        return OperationResult.Ok;
+    }
+
+    /// <summary>
     /// Resets this CfgFile instance. Unsaved data will be lost.
     /// <para>Note: the logger will not be changed</para>
     /// </summary>
     public void Clear()
     {
         _loadedConfig = null;
-        _editedConfig = null;
+        _editedConfig.Clear();
         _loadedAnnotations = null;
-        _editedAnnotations = null;
-        _pendingRemovalConfig = null;
-        _pendingRemovalAnnotations = null;
+        _editedAnnotations.Clear();
+        _pendingRemovalConfig.Clear();
+        _pendingRemovalAnnotations.Clear();
     }
 
     /// <summary>
@@ -324,7 +369,7 @@ public sealed class CfgFile
         List<string>? newAnnotations = null;
         
         // merge loaded and edited configs
-        if (_loadedConfig != null && _editedConfig != null)
+        if (_loadedConfig != null)
         {
             newConfig = new(_loadedConfig);
 
@@ -334,7 +379,7 @@ public sealed class CfgFile
             }
         }
         
-        if (_loadedAnnotations != null && _editedAnnotations != null)
+        if (_loadedAnnotations != null)
         {
             newAnnotations = new(_loadedAnnotations);
             HashSet<string> seen = new(_loadedAnnotations);
@@ -349,20 +394,14 @@ public sealed class CfgFile
         }
 
         // and now we remove items that are in the pending removal lists
-        if (_pendingRemovalConfig != null)
+        foreach (string toRemove in _pendingRemovalConfig)
         {
-            foreach (string toRemove in _pendingRemovalConfig)
-            {
-                newConfig?.Remove(toRemove);
-            }
+            newConfig?.Remove(toRemove);
         }
 
-        if (_pendingRemovalAnnotations != null)
+        foreach (string toRemove in _pendingRemovalAnnotations)
         {
-            foreach (string toRemove in _pendingRemovalAnnotations)
-            {
-                newAnnotations?.Remove(toRemove);
-            }
+            newAnnotations?.Remove(toRemove);
         }
 
         // now we apply and reset the pending removals
