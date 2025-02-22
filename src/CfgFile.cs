@@ -12,7 +12,8 @@ public sealed class CfgFile
     private ILogger _logger = new DefaultLogger();
     private Dictionary<string, string>? _loadedConfig = null;
     private Dictionary<string, string>? _editedConfig = null;
-    private string[]? _annotations = null;
+    private List<string>? _annotations = null; // not a list because this isnt supposed to change
+    private List<string>? _editedAnnotations = null;
 
     /// <summary>
     /// Replaces the logger with <paramref name="newLogger"/>
@@ -25,9 +26,17 @@ public sealed class CfgFile
     /// <summary>
     /// Returns all annotations found in the config file. May return null if nothing was found
     /// </summary>
-    public string[]? GetAnnotations()
+    public List<string>? GetAnnotations()
     {
         return _annotations;
+    }
+
+    /// <summary>
+    /// Returns all edited annotations or null if nothing was edited
+    /// </summary>
+    public List<string>? GetEditedAnnotations()
+    {
+        return _editedAnnotations;
     }
 
     /// <summary>
@@ -46,7 +55,7 @@ public sealed class CfgFile
     }
 
     /// <summary>
-    /// Returns the loaded config
+    /// Returns the loaded config ( or null if it doesn't exist )
     /// </summary>
     public Dictionary<string, string>? GetLoadedConfig()
     {
@@ -60,6 +69,25 @@ public sealed class CfgFile
     public Dictionary<string, string>? GetEditedConfig()
     {
         return _editedConfig;
+    }
+
+    /// <summary>
+    /// Adds a value to the config. Changes are not immediately applied; see <see cref="ApplyModified"/>
+    /// </summary>
+    /// <param name="key">Key</param>
+    /// <param name="value">Value for the key</param>
+    public void AddModifiedValue(string key, string value)
+    {
+        _editedConfig?.TryAdd(key, value);
+    }
+
+    /// <summary>
+    /// Adds an annotation to the config. Changes are not immediately applied; see <see cref="ApplyModified"/>
+    /// </summary>
+    /// <param name="annotation">Annotation to be added</param>
+    public void AddModifiedAnnotation(string annotation)
+    {
+        _editedAnnotations?.Add(annotation);
     }
 
     /// <summary>
@@ -77,7 +105,7 @@ public sealed class CfgFile
             using (StreamReader reader = new(stream))
             {
                 int lineIdx = 0;
-                string[] readAnnotations = Array.Empty<string>();
+                List<string>? readAnnotations = null;
                 Dictionary<string, string> loadedDict = new();
                 
                 while (!reader.EndOfStream)
@@ -101,15 +129,15 @@ public sealed class CfgFile
                                 string annotations = line.Remove(0, 11).Trim();
 
 #pragma warning disable IDE0300 // this is needed otherwise youll get CS0121; you need new char[]
-                                readAnnotations = annotations.Split(new char[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                                readAnnotations = annotations.Split(new char[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries).ToList();
 #pragma warning restore IDE0300
 
-                                for (int i = 0; i < readAnnotations.Length; i++)
+                                for (int i = 0; i < readAnnotations.Count; i++)
 	                            {
 	                            	readAnnotations[i] = readAnnotations[i].Trim();
 	                            }
 
-                                if (readAnnotations.Length > 0)
+                                if (readAnnotations.Count > 0)
                                 {
                                     _annotations = readAnnotations;
                                 }
@@ -179,5 +207,14 @@ public sealed class CfgFile
         _loadedConfig = null;
         _editedConfig = null;
         _annotations = null;
+        _editedAnnotations = null;
+    }
+
+    /// <summary>
+    /// Applies the changes made to the loaded config ( eg. merges _editedAnnotations into _annotations )
+    /// </summary>
+    public void ApplyModified()
+    {
+
     }
 }
