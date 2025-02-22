@@ -3,9 +3,6 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
-# ignore the tests folder ( which i use to test if confmanager works )
-.tests
-
 # dotenv files
 .env
 
