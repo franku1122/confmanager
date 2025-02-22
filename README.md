@@ -16,7 +16,7 @@ For more details on each feature, check the docs.
 
 ## Additional information
 
-- Values are stored as string ( for simplicity; converting values from string to the desired type is much simpler than using Variants )
+- Values are stored as string ( for simplicity; converting values from string to the desired type is pretty simple )
 - ConfManager only provides you methods to open, modify, and save a config file.
 - Changes you make to the file are sandboxed; you have to call `ApplyModified` to apply changes to annotations and values.
 - Saving the file doesn't apply the changes, call `SaveFile(AutoApply: true)` to apply the changes, or just call `ApplyModified` before saving.
