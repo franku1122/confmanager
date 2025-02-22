@@ -331,7 +331,7 @@ public sealed class CfgFile
     /// <param name="path">Path where the file will be created</param>
     /// <param name="overwriteIfExists">Overwrite an existing file if there is one</param>
     /// <param name="applyBeforeSave">Runs <c>ApplyModified</c> before saving</param>
-    /// <returns>Result of the operation as <see cref="OperationResult"/>. Returns Ok always</returns>
+    /// <returns>Result of the operation as <see cref="OperationResult"/></returns>
     public OperationResult SaveFile(string path, bool applyBeforeSave = false, bool overwriteIfExists = true)
     {
         bool overwrite = !overwriteIfExists;
@@ -460,9 +460,9 @@ public sealed class CfgFile
             _loadedAnnotations = newAnnotations;
         }
 
-        _pendingRemovalConfig?.Clear();
-        _pendingRemovalAnnotations?.Clear();
-        _editedConfig?.Clear();
-        _editedAnnotations?.Clear();
+        _pendingRemovalConfig.Clear();
+        _pendingRemovalAnnotations.Clear();
+        _editedConfig.Clear();
+        _editedAnnotations.Clear();
     }
 }
