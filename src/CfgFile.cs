@@ -366,8 +366,15 @@ public sealed class CfgFile
         }
 
         // now we apply and reset the pending removals
-        _loadedConfig = newConfig;
-        _loadedAnnotations = newAnnotations;
+        if (newConfig != null)
+        {
+            _loadedConfig = newConfig;
+        }
+
+        if (newAnnotations != null)
+        {
+            _loadedAnnotations = newAnnotations;
+        }
 
         _pendingRemovalConfig?.Clear();
         _pendingRemovalAnnotations?.Clear();
