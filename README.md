@@ -12,4 +12,4 @@ For more details on each feature, check the docs.
 - [ ] Customizable comment characters ( default is `//` )
 - [ ] Customizable key/value separator
 - [x] Customizable logger ( eg. use `GD.Print` instead of `Console.WriteLine` )
-- [ ] Ability to store all values on 1 line ( if separated by a semicolon, can be customized )
+- [ ] Ability to store all values on 1 line ( if separated by a semicolon )

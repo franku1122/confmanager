@@ -14,4 +14,8 @@ public enum OperationResult
     /// No permission error
     /// </summary>
     NoPermission = 2,
+    /// <summary>
+    /// File not found error
+    /// </summary>
+    FileNotFound = 3,
 }
