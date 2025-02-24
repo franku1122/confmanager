@@ -44,13 +44,58 @@ public sealed class CfgFile
     /// <summary>
     /// Returns an annotation from the loaded annotations or null if not found
     /// </summary>
-    public string? GetAnnotation(string name)
+    public string? GetLoadedAnnotation(string annotation)
     {
         if (_loadedAnnotations != null)
         {
-            foreach (string annotation in _loadedAnnotations)
+            foreach (string anno in _loadedAnnotations)
             {
-                if (annotation == "name") { return annotation; }
+                if (anno == annotation) { return anno; }
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Returns a value from the loaded annotations or null if not found
+    /// </summary>
+    public string? GetLoadedValue(string key)
+    {
+        if (_loadedConfig != null)
+        {
+            foreach (KeyValuePair<string, string> kvp in _loadedConfig)
+            {
+                if (kvp.Key == key) { return kvp.Value; }
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Returns an annotation from the edited annotations or null if not found
+    /// </summary>
+    public string? GetEditedAnnotation(string annotation)
+    {
+        if (_editedAnnotations != null)
+        {
+            foreach (string anno in _editedAnnotations)
+            {
+                if (anno == annotation) { return anno; }
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Returns a value from the loaded annotations or null if not found
+    /// </summary>
+    public string? GetEditedValue(string key)
+    {
+        if (_editedConfig != null)
+        {
+            foreach (KeyValuePair<string, string> kvp in _editedConfig)
+            {
+                if (kvp.Key == key) { return kvp.Value; }
             }
         }
         return null;
@@ -80,7 +125,7 @@ public sealed class CfgFile
     /// <param name="value">Value for the key</param>
     /// <param name="terminateRemoval">If true, will remove a value that matches this one from pending removal on next config apply</param>
     /// <returns>Returns <see cref="OperationResult"/></returns>
-    public OperationResult AddModifiedValue(string key, string value, bool terminateRemoval = true)
+    public OperationResult AddEditedValue(string key, string value, bool terminateRemoval = true)
     {
         if (!_editedConfig.ContainsKey(key))
         {
@@ -106,7 +151,7 @@ public sealed class CfgFile
     /// <param name="annotation">Annotation to be added</param>
     /// <param name="terminateRemoval">If true, will remove an annotation that matches this one from pending removal on next config apply</param>
     /// <returns>Returns <see cref="OperationResult"/></returns>
-    public OperationResult AddModifiedAnnotation(string annotation, bool terminateRemoval = true)
+    public OperationResult AddEditedAnnotation(string annotation, bool terminateRemoval = true)
     {
         if (!_editedAnnotations.Contains(annotation))
         {
@@ -132,7 +177,7 @@ public sealed class CfgFile
     /// <param name="key">Key</param>
     /// <param name="pendRemoval">If true, this value will be removed from the config if changes are applied</param>
     /// <returns>Returns <see cref="OperationResult"/></returns>
-    public OperationResult RemoveModifiedValue(string key, bool pendRemoval = true)
+    public OperationResult RemoveEditedValue(string key, bool pendRemoval = true)
     {
         if (_editedConfig.ContainsKey(key))
         {
@@ -155,7 +200,7 @@ public sealed class CfgFile
     /// <param name="annotation">The annotation</param>
     /// <param name="pendRemoval">If true, this value will be removed from the config if changes are applied</param>
     /// <returns>Returns <see cref="OperationResult"/></returns>
-    public OperationResult RemoveModifiedAnnotation(string annotation, bool pendRemoval = true)
+    public OperationResult RemoveEditedAnnotation(string annotation, bool pendRemoval = true)
     {
         if (_editedAnnotations.Contains(annotation))
         {
@@ -173,7 +218,7 @@ public sealed class CfgFile
     }
 
     /// <summary>
-    /// Exactly the same as <see cref="RemoveModifiedValue"/>, but removes a value from the loaded file.
+    /// Exactly the same as <see cref="RemoveEditedValue"/>, but removes a value from the loaded file.
     /// </summary>
     /// <param name="key">The value</param>
     /// <returns>Returns <see cref="OperationResult"/></returns>
@@ -190,7 +235,7 @@ public sealed class CfgFile
     }
 
     /// <summary>
-    /// Exactly the same as <see cref="RemoveModifiedAnnotation"/>, but removes an annotation from the loaded file.
+    /// Exactly the same as <see cref="RemoveEditedAnnotation"/>, but removes an annotation from the loaded file.
     /// </summary>
     /// <param name="annotation">The annotation</param>
     /// <returns>Returns <see cref="OperationResult"/></returns>
@@ -212,6 +257,12 @@ public sealed class CfgFile
     /// <returns>Result of the operation</returns>
     public OperationResult CreateFile()
     {
+        if (_loadedConfig != null && _loadedAnnotations != null)
+        {
+            _logger.Put(LogType.Error, "Cannot create a new blank file when a file already exists.");
+            return OperationResult.Error;
+        }
+
         _loadedConfig = new();
         _loadedAnnotations = new();
         return OperationResult.Ok;
@@ -408,7 +459,8 @@ public sealed class CfgFile
     /// Applies the changes made to the loaded config ( eg. merges _editedAnnotations into _loadedAnnotations )
     /// <para>Note: the edited values have priority over their loaded counterparts</para>
     /// </summary>
-    public void ApplyModified()
+    /// <param name="createIfNull">If true, a new file is created if no loaded config is detected, which avoids many issues.</param>
+    public void ApplyModified(bool createIfNull = true)
     {
         Dictionary<string, string>? newConfig = null;
         List<string>? newAnnotations = null;
@@ -423,6 +475,19 @@ public sealed class CfgFile
                 newConfig[kvp.Key] = kvp.Value;
             }
         }
+        else
+        {
+            if (!createIfNull)
+            {
+                _logger.Put(LogType.Error, "No loaded config found. This method will not function properly; run the method with createIfNull = true or load / create a file before running ApplyModified");
+            }
+            else
+            {
+                _logger.Put(LogType.Error, "No loaded config found. createIfNull = true, rerunning the function..");
+                CreateFile();
+                ApplyModified();
+            }
+        }
         
         if (_loadedAnnotations != null)
         {
@@ -435,6 +500,19 @@ public sealed class CfgFile
                 {
                     newAnnotations.Add(item);
                 }
+            }
+        }
+        else
+        {
+            if (!createIfNull)
+            {
+                _logger.Put(LogType.Error, "No loaded config found. This method will not function properly; run the method with createIfNull = true or load / create a file before running ApplyModified");
+            }
+            else
+            {
+                _logger.Put(LogType.Error, "No loaded config found. createIfNull = true, rerunning the function..");
+                CreateFile();
+                ApplyModified();
             }
         }
 
