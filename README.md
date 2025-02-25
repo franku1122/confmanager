@@ -4,8 +4,6 @@ An optimized ( hopefully ) .cfg file reader / writer, made in 2 days for my proj
 
 ## Features
 
-For more details on each feature, check the docs.
-
 - [x] Annotations ( special flags at the top of the file )
 - [x] Customizable comment characters ( default is `//` )
 - [x] Customizable key/value separator
