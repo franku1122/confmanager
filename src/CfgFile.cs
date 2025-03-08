@@ -387,7 +387,7 @@ public sealed class CfgFile
             {
                 // we get the values and add them in
                 string key = parts[0].Trim();
-                string value = parts[1].Trim();
+                string value = parts[1].Trim().Trim('\"');
 
                 return [key, value];
             }
