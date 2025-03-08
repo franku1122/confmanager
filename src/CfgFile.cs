@@ -440,7 +440,14 @@ public sealed class CfgFile
                     {
                         if (CfgCustomizer.KeyValueSeparator != ' ')
                         {
-                            writer.WriteLine($"{kvp.Key} {CfgCustomizer.KeyValueSeparator} {kvp.Value}");
+                            if (CfgCustomizer.UseQuotedValues)
+                            {
+                                writer.WriteLine($"{kvp.Key} {CfgCustomizer.KeyValueSeparator} \"{kvp.Value}\"");
+                            }
+                            else
+                            {
+                                writer.WriteLine($"{kvp.Key} {CfgCustomizer.KeyValueSeparator} {kvp.Value}");
+                            }
                         }
                         else // spaces are handled differently than other stuff so no extra spaces are added around the kv separator
                         {

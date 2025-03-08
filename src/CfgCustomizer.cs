@@ -11,4 +11,5 @@ public static class CfgCustomizer
 {
     public static string CommentCharacter = "//";
     public static char KeyValueSeparator = '=';
+    public static bool UseQuotedValues = true;
 }
