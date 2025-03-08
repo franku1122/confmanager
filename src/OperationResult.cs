@@ -20,4 +20,12 @@ public enum OperationResult
     /// File not found error
     /// </summary>
     FileNotFound = 3,
+    /// <summary>
+    /// Something already exists error
+    /// </summary>
+    AlreadyExists = 4,
+    /// <summary>
+    /// Something wasn't found error
+    /// </summary>
+    NotFound = 5,
 }

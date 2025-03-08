@@ -42,6 +42,83 @@ public sealed class CfgFile
     }
 
     /// <summary>
+    /// Returns the loaded config ( or null if it doesn't exist )
+    /// </summary>
+    public Dictionary<string, string>? GetLoadedConfig()
+    {
+        return _loadedConfig;
+    }
+
+    /// <summary>
+    /// Returns the edited config. If nothing was edited, it's null. If a config is saved, the edited config is merged with the loaded one,
+    /// and the edited config is set to null.
+    /// </summary>
+    public Dictionary<string, string> GetEditedConfig()
+    {
+        return _editedConfig;
+    }
+
+    /// <summary>
+    /// Marks an annotation for removal on the next config apply
+    /// </summary>
+    /// <param name="annotation">The annotation to be removed</param>
+    public OperationResult PendAnnotationRemoval(string annotation)
+    {
+        if (!_pendingRemovalAnnotations.Contains(annotation))
+        {
+            _pendingRemovalAnnotations.Add(annotation);
+            return OperationResult.Ok;
+        }
+
+        return OperationResult.AlreadyExists;
+    }
+
+    /// <summary>
+    /// Removes an annotation from the list of pending removals
+    /// </summary>
+    /// <param name="annotation">The annotation to be removed</param>
+    public OperationResult RemovePendingAnnotationRemoval(string annotation)
+    {
+        if (_pendingRemovalAnnotations.Contains(annotation))
+        {
+            _pendingRemovalAnnotations.Remove(annotation);
+            return OperationResult.Ok;
+        }
+
+        return OperationResult.NotFound;
+    }
+
+    /// <summary>
+    /// Marks a value for removal on the next config apply
+    /// </summary>
+    /// <param name="key">The value's key</param>
+    public OperationResult PendValueRemoval(string key)
+    {
+        if (!_pendingRemovalConfig.Contains(key))
+        {
+            _pendingRemovalConfig.Add(key);
+            return OperationResult.Ok;
+        }
+
+        return OperationResult.AlreadyExists;
+    }
+
+    /// <summary>
+    /// Marks a value for removal on the next config apply
+    /// </summary>
+    /// <param name="key">The value's key</param>
+    public OperationResult RemovePendingValueRemoval(string key)
+    {
+        if (_pendingRemovalConfig.Contains(key))
+        {
+            _pendingRemovalConfig.Remove(key);
+            return OperationResult.Ok;
+        }
+
+        return OperationResult.NotFound;
+    }
+
+    /// <summary>
     /// Returns an annotation from the loaded annotations or null if not found
     /// </summary>
     public string? GetLoadedAnnotation(string annotation)
@@ -99,23 +176,6 @@ public sealed class CfgFile
             }
         }
         return null;
-    }
-
-    /// <summary>
-    /// Returns the loaded config ( or null if it doesn't exist )
-    /// </summary>
-    public Dictionary<string, string>? GetLoadedConfig()
-    {
-        return _loadedConfig;
-    }
-
-    /// <summary>
-    /// Returns the edited config. If nothing was edited, it's null. If a config is saved, the edited config is merged with the loaded one,
-    /// and the edited config is set to null.
-    /// </summary>
-    public Dictionary<string, string> GetEditedConfig()
-    {
-        return _editedConfig;
     }
 
     /// <summary>
