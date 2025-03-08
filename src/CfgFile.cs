@@ -273,6 +273,7 @@ public sealed class CfgFile
     /// </summary>
     /// <param name="path">Path to the config file</param>
     /// <returns><see cref="OperationResult"/></returns>
+    #pragma warning disable IDE0300 // this is needed otherwise youll get CS0121; you need new char[]
     public OperationResult OpenFile(string path)
     {
         // try open the file
@@ -305,10 +306,7 @@ public sealed class CfgFile
                                 // now we copy everything after @annotation into a new string, and separate those into specific annotations
                                 // which can be separated either by a semicolon or a comma
                                 string annotations = line.Remove(0, 11).Trim();
-
-#pragma warning disable IDE0300 // this is needed otherwise youll get CS0121; you need new char[]
                                 readAnnotations = annotations.Split(new char[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries).ToList();
-#pragma warning restore IDE0300
 
                                 for (int i = 0; i < readAnnotations.Count; i++)
 	                            {
@@ -320,35 +318,23 @@ public sealed class CfgFile
                                     _loadedAnnotations = readAnnotations;
                                 }
                             }
+                            else // normal parsing
+                            {
+                                string[]? kvp = ParseLine(line, lineIdx);
+
+                                if (kvp != null)
+                                {
+                                    loadedDict.Add(kvp[0], kvp[1]);
+                                }
+                            }
                         }
                         else
                         {
-                            // remove everything after the comment character
-                            int commentIndex = line.IndexOf(CfgCustomizer.CommentCharacter);
-                            string lineNoComments = commentIndex >= 0 ? line.Substring(0, commentIndex).Trim() : line;
+                            string[]? kvp = ParseLine(line, lineIdx);
 
-#pragma warning disable IDE0300 // this is needed otherwise youll get CS0121; you need new char[]
-                            string[] keyValuePairs = lineNoComments.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-#pragma warning restore IDE0300
-
-                            foreach (string pair in keyValuePairs)
+                            if (kvp != null)
                             {
-                                // now we split the line by the key value separator
-                                string[] parts = pair.Split(CfgCustomizer.KeyValueSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
-
-                                if (parts.Length == 2)
-                                {
-                                    // we get the values and add them in
-                                    string key = parts[0].Trim();
-                                    string value = parts[1].Trim();
-
-                                    loadedDict.Add(key, value);
-                                }
-                                else
-                                {
-                                    _logger.Put(LogType.Warn, "Failed to parse a value; the value has not been added. Error encountered at:");
-                                    _logger.Put(LogType.Warn, $"Line {lineIdx} : {line}");
-                                }
+                                loadedDict.Add(kvp[0], kvp[1]);
                             }
                         }
                     }
@@ -375,6 +361,48 @@ public sealed class CfgFile
         
         return OperationResult.Ok;
     }
+#pragma warning restore IDE0300
+
+    /// <summary>
+    /// Parses a line from a config file ( like Name = "Bob" ) and returns it as a key-value pair
+    /// </summary>
+    /// <param name="line"></param>
+    /// <param name="lineIdx"></param>
+    /// <returns>A key-value pair or null if failed to parse ( or didnt parse )</returns>
+#pragma warning disable IDE0300 // Simplify collection initialization
+    private string[]? ParseLine(string line, int lineIdx)
+    {
+        // remove everything after the comment character
+        int commentIndex = line.IndexOf(CfgCustomizer.CommentCharacter);
+        string lineNoComments = commentIndex >= 0 ? line.Substring(0, commentIndex).Trim() : line;
+
+        string[] keyValuePairs = lineNoComments.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (string pair in keyValuePairs)
+        {
+            // now we split the line by the key value separator
+            string[] parts = pair.Split(CfgCustomizer.KeyValueSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length == 2)
+            {
+                // we get the values and add them in
+                string key = parts[0].Trim();
+                string value = parts[1].Trim();
+
+                return [key, value];
+            }
+            else
+            {
+                _logger.Put(LogType.Warn, "Failed to parse a value; the value will not be added. Error encountered at:");
+                _logger.Put(LogType.Warn, $"Line {lineIdx} : {line}");
+
+                return null;
+            }
+        }
+
+        return null;
+    }
+#pragma warning restore IDE0300 // Simplify collection initialization
 
     /// <summary>
     /// Saves the config file at <paramref name="path"/>
