@@ -59,6 +59,38 @@ public sealed class CfgFile
     }
 
     /// <summary>
+    /// Sets the loaded config as <paramref name="newConfig"/>. Not recommended
+    /// </summary>
+    public void SetLoadedConfig(Dictionary<string, string> newConfig)
+    {
+        _loadedConfig = newConfig;
+    }
+
+    /// <summary>
+    /// Sets the loaded annotations as <paramref name="newAnnotations"/>. Not recommended
+    /// </summary>
+    public void SetLoadedAnnotations(List<string> newAnnotations)
+    {
+        _loadedAnnotations = newAnnotations;
+    }
+
+    /// <summary>
+    /// Sets the edited config as <paramref name="newConfig"/>
+    /// </summary>
+    public void SetEditedConfig(Dictionary<string, string> newConfig)
+    {
+        _editedConfig = newConfig;
+    }
+
+    /// <summary>
+    /// Sets the edited annotations as <paramref name="newAnnotations"/>
+    /// </summary>
+    public void SetEditedAnnotations(List<string> newAnnotations)
+    {
+        _editedAnnotations = newAnnotations;
+    }
+
+    /// <summary>
     /// Marks an annotation for removal on the next config apply
     /// </summary>
     /// <param name="annotation">The annotation to be removed</param>
@@ -189,17 +221,19 @@ public sealed class CfgFile
     {
         if (!_editedConfig.ContainsKey(key))
         {
-            _editedConfig.TryAdd(key, value);
+            bool added = _editedConfig.TryAdd(key, value);
 
             if (terminateRemoval)
             {
-                if (_pendingRemovalConfig.Contains(key))
-                {
-                    _pendingRemovalConfig.Remove(key);
-                }
+                // if (_pendingRemovalConfig.Contains(key))
+                // {
+                //     _pendingRemovalConfig.Remove(key);
+                // }
+
+                RemovePendingValueRemoval(key);
             }
 
-            return OperationResult.Ok;
+            return added ? OperationResult.Ok : OperationResult.NotAdded;
         }
         
         return OperationResult.Error;
@@ -219,10 +253,12 @@ public sealed class CfgFile
 
             if (terminateRemoval)
             {
-                if (_pendingRemovalAnnotations.Contains(annotation))
-                {
-                    _pendingRemovalAnnotations.Remove(annotation);
-                }
+                // if (_pendingRemovalAnnotations.Contains(annotation))
+                // {
+                //     _pendingRemovalAnnotations.Remove(annotation);
+                // }
+
+                RemovePendingAnnotationRemoval(annotation);
             }
 
             return OperationResult.Ok;
@@ -245,7 +281,8 @@ public sealed class CfgFile
 
             if (pendRemoval)
             {
-                _pendingRemovalConfig.Add(key);
+                // _pendingRemovalConfig.Add(key);
+                PendValueRemoval(key);
             }
 
             return OperationResult.Ok;
@@ -258,7 +295,7 @@ public sealed class CfgFile
     /// Removes an annotation from the config. Changes are not immediately applied; see <see cref="ApplyModified"/>
     /// </summary>
     /// <param name="annotation">The annotation</param>
-    /// <param name="pendRemoval">If true, this value will be removed from the config if changes are applied</param>
+    /// <param name="pendRemoval">If true, this annotation will be removed from the config if changes are applied</param>
     /// <returns>Returns <see cref="OperationResult"/></returns>
     public OperationResult RemoveEditedAnnotation(string annotation, bool pendRemoval = true)
     {
@@ -268,7 +305,8 @@ public sealed class CfgFile
 
             if (pendRemoval)
             {
-                _pendingRemovalAnnotations.Add(annotation);
+                // _pendingRemovalAnnotations.Add(annotation);
+                PendAnnotationRemoval(annotation);
             }
 
             return OperationResult.Ok;

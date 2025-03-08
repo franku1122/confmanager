@@ -28,4 +28,12 @@ public enum OperationResult
     /// Something wasn't found error
     /// </summary>
     NotFound = 5,
+    /// <summary>
+    /// Not added error
+    /// </summary>
+    NotAdded = 6,
+    /// <summary>
+    /// Not removed error
+    /// </summary>
+    NotRemoved = 7,
 }
