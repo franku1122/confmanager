@@ -462,11 +462,11 @@ public sealed class CfgFile
 #pragma warning restore IDE0300
 
     /// <summary>
-    /// Parses a line from a config file ( like Name = "Bob" ) and returns it as a key-value pair
+    /// Parses a line from a config file ( like Name = "Bob" ) and returns it as a string array where key = 0, value = 1
     /// </summary>
     /// <param name="line"></param>
     /// <param name="lineIdx"></param>
-    /// <returns>A key-value pair or null if failed to parse ( or didnt parse )</returns>
+    /// <returns>A string array or null if failed to parse ( or didnt parse )</returns>
 #pragma warning disable IDE0300 // Simplify collection initialization
     private string[]? ParseLine(string line, int lineIdx)
     {
