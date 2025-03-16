@@ -12,7 +12,7 @@ public sealed class CfgFile
     private ILogger _logger = new DefaultLogger();
     private Dictionary<string, string>? _loadedConfig = null;
     private Dictionary<string, string> _editedConfig = new();
-    private List<string>? _loadedAnnotations = null; // not a list because this isnt supposed to change
+    private List<string>? _loadedAnnotations = null;
     private List<string> _editedAnnotations = new();
     private HashSet<string> _pendingRemovalConfig = new();
     private HashSet<string> _pendingRemovalAnnotations = new();
@@ -151,6 +151,34 @@ public sealed class CfgFile
     }
 
     /// <summary>
+    /// Returns the index of a loaded annotation, or -1 if it doesn't exist.
+    /// </summary>
+    /// <param name="annotation">The annotation</param>
+    public int GetLoadedAnnotationIdx(string annotation)
+    {
+        if (_loadedAnnotations != null)
+        {
+            return _loadedAnnotations.FindIndex(a => a.Contains(annotation));
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// Returns the index of an edited annotation, or -1 if it doesn't exist.
+    /// </summary>
+    /// <param name="annotation">The annotation</param>
+    public int GetEditedAnnotationIdx(string annotation)
+    {
+        if (_editedAnnotations != null)
+        {
+            return _editedAnnotations.FindIndex(a => a.Contains(annotation));
+        }
+
+        return -1;
+    }
+
+    /// <summary>
     /// Returns an annotation from the loaded annotations or null if not found
     /// </summary>
     public string? GetLoadedAnnotation(string annotation)
@@ -166,7 +194,7 @@ public sealed class CfgFile
     }
 
     /// <summary>
-    /// Returns a value from the loaded annotations or null if not found
+    /// Returns a value from the loaded config or null if not found
     /// </summary>
     public string? GetLoadedValue(string key)
     {
@@ -196,7 +224,7 @@ public sealed class CfgFile
     }
 
     /// <summary>
-    /// Returns a value from the loaded annotations or null if not found
+    /// Returns a value from the loaded config or null if not found
     /// </summary>
     public string? GetEditedValue(string key)
     {
