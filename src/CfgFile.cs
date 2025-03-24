@@ -28,7 +28,7 @@ public sealed class CfgFile
     /// <summary>
     /// Returns all annotations found in the config file
     /// </summary>
-    public List<string>? GetAnnotations()
+    public List<string>? GetLoadedAnnotations()
     {
         return _loadedAnnotations;
     }
