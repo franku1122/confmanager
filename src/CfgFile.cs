@@ -528,7 +528,7 @@ public sealed class CfgFile
 
                 if (line.StartsWith("@annotation "))
                 {
-                    _logger.Put(LogType.Warn, "This error happened because annotations need to be on the first line of the file ( if you see this message, it means they weren't on the first line ). The annotations haven't been read.");
+                    _logger.Put(LogType.Warn, "\nThis error happened because annotations need to be on the first line of the file ( if you see this message, it means they weren't on the first line ). The annotations haven't been read.");
                 }
 
                 return null;
