@@ -399,7 +399,6 @@ public sealed class CfgFile
     /// </summary>
     /// <param name="path">Path to the config file</param>
     /// <returns><see cref="OperationResult"/></returns>
-    #pragma warning disable IDE0300 // this is needed otherwise youll get CS0121; you need new char[]
     public OperationResult OpenFile(string path)
     {
         // try open the file
@@ -420,6 +419,11 @@ public sealed class CfgFile
 
                     if (uglyLine != null)
                     {
+                        // ngl it wouldve been great if this could handle the annotation not being the first line
+                        // so that the first few lines could be comments
+                        // tried doing that but theres 1 issue: every value is ignored ( making the file useless ) if there are no annotations
+                        // soo yea this will prob be added in versions after 1.2 ( hopefully also customization to quoted value character )
+
                         string line = uglyLine.Trim();
 
                         if (lineIdx == 1)
@@ -444,7 +448,7 @@ public sealed class CfgFile
                                     _loadedAnnotations = readAnnotations;
                                 }
                             }
-                            else // normal parsing
+                            else
                             {
                                 string[]? kvp = ParseLine(line, lineIdx);
 
@@ -487,7 +491,6 @@ public sealed class CfgFile
         
         return OperationResult.Ok;
     }
-#pragma warning restore IDE0300
 
     /// <summary>
     /// Parses a line from a config file ( like Name = "Bob" ) and returns it as a string array where key = 0, value = 1
@@ -495,7 +498,6 @@ public sealed class CfgFile
     /// <param name="line"></param>
     /// <param name="lineIdx"></param>
     /// <returns>A string array or null if failed to parse ( or didnt parse )</returns>
-#pragma warning disable IDE0300 // Simplify collection initialization
     private string[]? ParseLine(string line, int lineIdx)
     {
         // remove everything after the comment character
@@ -506,14 +508,15 @@ public sealed class CfgFile
 
         foreach (string pair in keyValuePairs)
         {
-            // now we split the line by the key value separator
+            // split the line by the key value separator
             string[] parts = pair.Split(CfgCustomizer.KeyValueSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
 
             if (parts.Length == 2)
             {
-                // we get the values and add them in
+                // get the values and add them in
                 string key = parts[0].Trim();
-                string value = parts[1].Trim().Trim('\"');
+                string value = parts[1].Trim().Trim('\"'); // this will need to change to say CfgCustomizer.QuotedValueCharacter or smth
+                // to support customization
 
                 return [key, value];
             }
@@ -528,7 +531,6 @@ public sealed class CfgFile
 
         return null;
     }
-#pragma warning restore IDE0300 // Simplify collection initialization
 
     /// <summary>
     /// Saves the config file at <paramref name="path"/>
@@ -577,7 +579,14 @@ public sealed class CfgFile
                         }
                         else // spaces are handled differently than other stuff so no extra spaces are added around the kv separator
                         {
-                            writer.WriteLine($"{kvp.Key}{CfgCustomizer.KeyValueSeparator}{kvp.Value}");
+                            if (CfgCustomizer.UseQuotedValues)
+                            {
+                                writer.WriteLine($"{kvp.Key}{CfgCustomizer.KeyValueSeparator}\"{kvp.Value}\"");
+                            }
+                            else
+                            {
+                                writer.WriteLine($"{kvp.Key}{CfgCustomizer.KeyValueSeparator}{kvp.Value}");
+                            }
                         }
                     }
                 }
