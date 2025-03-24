@@ -423,6 +423,7 @@ public sealed class CfgFile
                         // so that the first few lines could be comments
                         // tried doing that but theres 1 issue: every value is ignored ( making the file useless ) if there are no annotations
                         // soo yea this will prob be added in versions after 1.2 ( hopefully also customization to quoted value character )
+                        // currently if u put a value above the annotation declaration, it raises an error and doesnt register any annotations
 
                         string line = uglyLine.Trim();
 
@@ -524,6 +525,11 @@ public sealed class CfgFile
             {
                 _logger.Put(LogType.Warn, "Failed to parse a value; the value will not be added. Error encountered at:");
                 _logger.Put(LogType.Warn, $"Line {lineIdx} : {line}");
+
+                if (line.StartsWith("@annotation "))
+                {
+                    _logger.Put(LogType.Warn, "This error happened because annotations need to be on the first line of the file ( if you see this message, it means they weren't on the first line ). The annotations haven't been read.");
+                }
 
                 return null;
             }
