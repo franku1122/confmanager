@@ -13,7 +13,7 @@ An optimized ( hopefully ) .cfg file reader / writer, made in 2 days for my proj
 
 ## Using `IConfig` after version 2.0
 
-Version 2.0 introduces many features, including more customization but most importantly: the `IConfig` interface.
+Version 2.0 introduces many features, including more customization but most importantly the `IConfig` interface.
 This interface allows you to save a class's fields or properties to a config file easily. You can do this like this:
 
 ```cs
