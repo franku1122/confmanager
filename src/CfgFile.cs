@@ -18,8 +18,8 @@ public sealed class CfgFile
     private HashSet<string> _pendingRemovalConfig = new();
     private HashSet<string> _pendingRemovalAnnotations = new();
 
-    // todo: createfrom and updatefrom should handle arrays n classes ( arrays classes should be handled everywhere tbf )
-    // todo: createfrom and updatefrom should handle string arrays for annotations :)))
+    // todo: createfrom and updatefrom should handle arrays n classes ( arrays classes should be handled everywhere tbf
+    // todo: including some unsupported types )
 
     /// <summary>
     /// Creates a config file from <paramref name="config"/>
