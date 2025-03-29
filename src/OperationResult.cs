@@ -36,4 +36,8 @@ public enum OperationResult
     /// Not removed error
     /// </summary>
     NotRemoved = 7,
+    /// <summary>
+    /// Doesn't exist error
+    /// </summary>
+    DoesntExist = 8,
 }

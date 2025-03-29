@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System;
 using System.IO;
+using System.Reflection;
 
 namespace ConfManager;
 
@@ -16,6 +17,163 @@ public sealed class CfgFile
     private List<string> _editedAnnotations = new();
     private HashSet<string> _pendingRemovalConfig = new();
     private HashSet<string> _pendingRemovalAnnotations = new();
+
+    // todo: createfrom and updatefrom should handle arrays n classes ( arrays classes should be handled everywhere tbf )
+    // todo: createfrom and updatefrom should handle string arrays for annotations :)))
+
+    /// <summary>
+    /// Creates a config file from <paramref name="config"/>
+    /// <para>Note: Operations like this are expensive. Avoid using this method in any loops. This method also uses <c>ToString</c> to save
+    /// values, ensure your values and annotations can be represented as a string</para>
+    /// </summary>
+    /// <param name="config">The config</param>
+    /// <param name="clearExisting">If true, clears existing config</param>
+    #pragma warning disable CS8604 // Possible null reference argument.
+    #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+    public OperationResult CreateFrom(IConfig config, bool clearExisting = true)
+    {
+        if (clearExisting) { Clear(); }
+
+        Dictionary<string, string> loadedConfig = new();
+        List<string> loadedAnnotations = new();
+
+        Type type = config.GetType();
+        FieldInfo[] fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetField | BindingFlags.GetProperty);
+
+        foreach (FieldInfo field in fields)
+        {
+            if (field != null)
+            {
+                if (Attribute.IsDefined(field, typeof(ConfigValue)))
+                {
+                    object value = field.GetValue(field.IsStatic ? null : config);
+
+                    if (value != null)
+                    {
+                        loadedConfig.Add(field.Name, value.ToString());
+                    }
+                }
+                else if (Attribute.IsDefined(field, typeof(ConfigAnnotation))) // yep multiple values can be annotations
+                {                    
+                    object value = field.GetValue(field.IsStatic ? null : config);
+                    
+                    if (value != null)
+                    {
+                        // add annotations
+                        string strValue = value.ToString();
+
+                        if (strValue != null)
+                        {
+                            string[] annotations = strValue.Split(CfgCustomizer.AnnotationSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+                            foreach (string anno in annotations)
+                            {
+                                loadedAnnotations.Add(anno.Trim());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        _loadedConfig = loadedConfig;
+        _loadedAnnotations = loadedAnnotations;
+
+        return OperationResult.Ok;
+    }
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+#pragma warning restore CS8604 // Possible null reference argument.
+
+    /// <summary>
+    /// Updates the file from <paramref name="config"/>
+    /// <para>Note: Operations like this when <paramref name="clearExisting"/> is true are expensive. If the file didn't change too much
+    /// after the file creation using <c>CreateFrom</c>, consider running this method with <paramref name="clearExisting"/> as false</para>
+    /// </summary>
+    /// <param name="config">The config</param>
+    /// <param name="clearExisting">If true, clears existing values. Not recommended when updating the config that was created from <c>IConfig</c></param>
+#pragma warning disable CS8604 // Possible null reference argument.
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+#pragma warning disable CS8601 // Possible null reference assignment.
+    public OperationResult UpdateFrom(IConfig config, bool clearExisting = true)
+    {
+        if (clearExisting) 
+        {
+            // create a new config. no need to logic here as createfrom does this automatically
+            return CreateFrom(config, true);
+        }
+        else // this method is pretty similar to createfrom but it doesnt do everything from scratch
+        {
+            if (_loadedConfig == null) { return OperationResult.DoesntExist; }
+            if (_loadedAnnotations == null) { return OperationResult.DoesntExist; }
+            
+            Dictionary<string, string> loadedConfig = _loadedConfig;
+            List<string> loadedAnnotations = _loadedAnnotations;
+
+            Type type = config.GetType();
+            FieldInfo[] fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetField | BindingFlags.GetProperty);
+
+            foreach (FieldInfo field in fields)
+            {
+                if (field != null)
+                {
+                    if (Attribute.IsDefined(field, typeof(ConfigValue)))
+                    {
+                        object value = field.GetValue(field.IsStatic ? null : config);
+
+                        if (value != null)
+                        {
+                            // try finding an existing value and override it, otherwise add it in
+                            string fieldName = field.Name;
+
+                            if (loadedConfig.ContainsKey(fieldName))
+                            {
+                                loadedConfig[fieldName] = value.ToString();
+                            }
+                            else
+                            {
+                                loadedConfig.Add(fieldName, value.ToString());
+                            }
+                        }
+                    }
+                    else if (Attribute.IsDefined(field, typeof(ConfigAnnotation))) // yep multiple values can be annotations
+                    {                    
+                        object value = field.GetValue(field.IsStatic ? null : config);
+
+                        if (value != null)
+                        {
+                            // similar for annotations, but dont add a new annotation if it finds one
+                            string strValue = value.ToString();
+
+                            if (strValue != null)
+                            {
+                                string[] annotations = strValue.Split(CfgCustomizer.AnnotationSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+                                foreach (string anno in annotations)
+                                {
+                                    if (loadedAnnotations.Contains(anno))
+                                    {
+                                        continue;
+                                    }
+                                    else
+                                    {
+                                        loadedAnnotations.Add(anno.Trim());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            _loadedConfig = loadedConfig;
+            _loadedAnnotations = loadedAnnotations;
+
+            return OperationResult.Ok;
+        }
+    }
+#pragma warning restore CS8601 // Possible null reference assignment.
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+#pragma warning restore CS8604 // Possible null reference argument.
 
     /// <summary>
     /// Replaces the logger with <paramref name="newLogger"/>
@@ -253,11 +411,6 @@ public sealed class CfgFile
 
             if (terminateRemoval)
             {
-                // if (_pendingRemovalConfig.Contains(key))
-                // {
-                //     _pendingRemovalConfig.Remove(key);
-                // }
-
                 RemovePendingValueRemoval(key);
             }
 
@@ -281,11 +434,6 @@ public sealed class CfgFile
 
             if (terminateRemoval)
             {
-                // if (_pendingRemovalAnnotations.Contains(annotation))
-                // {
-                //     _pendingRemovalAnnotations.Remove(annotation);
-                // }
-
                 RemovePendingAnnotationRemoval(annotation);
             }
 
@@ -309,7 +457,6 @@ public sealed class CfgFile
 
             if (pendRemoval)
             {
-                // _pendingRemovalConfig.Add(key);
                 PendValueRemoval(key);
             }
 
@@ -333,7 +480,6 @@ public sealed class CfgFile
 
             if (pendRemoval)
             {
-                // _pendingRemovalAnnotations.Add(annotation);
                 PendAnnotationRemoval(annotation);
             }
 
@@ -401,7 +547,6 @@ public sealed class CfgFile
     /// <returns><see cref="OperationResult"/></returns>
     public OperationResult OpenFile(string path)
     {
-        // try open the file
         try
         {
             FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None);
@@ -411,6 +556,9 @@ public sealed class CfgFile
                 int lineIdx = 0;
                 List<string>? readAnnotations = null;
                 Dictionary<string, string> loadedDict = new();
+
+                bool foundFirstMeaningfulLine = false;
+                bool readAnnotation = false; // if true it means annotations were read. this value is only to allow 1 annotation declaration
                 
                 while (!reader.EndOfStream)
                 {
@@ -419,55 +567,45 @@ public sealed class CfgFile
 
                     if (uglyLine != null)
                     {
-                        // ngl it wouldve been great if this could handle the annotation not being the first line
-                        // so that the first few lines could be comments
-                        // tried doing that but theres 1 issue: every value is ignored ( making the file useless ) if there are no annotations
-                        // soo yea this will prob be added in versions after 1.2 ( hopefully also customization to quoted value character )
-                        // currently if u put a value above the annotation declaration, it raises an error and doesnt register any annotations
-
                         string line = uglyLine.Trim();
 
-                        if (lineIdx == 1)
+                        if (line.Length == 0 || line.StartsWith(CfgCustomizer.CommentCharacter)) { continue; } // skip useless lines
+
+                        if (!foundFirstMeaningfulLine)
                         {
-                            // we add annotations ( requirements are simple; line starts with '@annotation ' and we put everything
-                            // into readAnnotations )
+                            foundFirstMeaningfulLine = true;
                             
                             if (line.StartsWith("@annotation "))
-                            {
-                                // now we copy everything after @annotation into a new string, and separate those into specific annotations
-                                // which can be separated either by a semicolon or a comma
-                                string annotations = line.Remove(0, 11).Trim();
-                                readAnnotations = annotations.Split(new char[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+			                {
+			                	if (readAnnotation)
+			                	{
+			                		_logger.Put(LogType.Error, "Only 1 annotation declaration is allowed.");
+			                		continue;
+			                	}
 
-                                for (int i = 0; i < readAnnotations.Count; i++)
-	                            {
-	                            	readAnnotations[i] = readAnnotations[i].Trim();
-	                            }
+			                	string annotations = line.Remove(0, 11).Trim();
+			                	readAnnotations = annotations.Split(CfgCustomizer.AnnotationSeparator, StringSplitOptions.RemoveEmptyEntries).ToList();
 
-                                if (readAnnotations.Count > 0)
+			                	for (int i = 0; i < readAnnotations.Count; i++)
                                 {
-                                    _loadedAnnotations = readAnnotations;
+			                		readAnnotations[i] = readAnnotations[i].Trim();
                                 }
-                            }
-                            else
-                            {
-                                string[]? kvp = ParseLine(line, lineIdx);
 
-                                if (kvp != null)
-                                {
-                                    loadedDict.Add(kvp[0], kvp[1]);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            string[]? kvp = ParseLine(line, lineIdx);
+			                	if (readAnnotations.Count > 0)
+			                	{
+			                		_loadedAnnotations = readAnnotations;
+			                		readAnnotation = true;
+			                	}
 
-                            if (kvp != null)
-                            {
-                                loadedDict.Add(kvp[0], kvp[1]);
-                            }
+			                	continue;
+			                }
                         }
+
+                        string[]? kvp = ParseLine(line, lineIdx, ref readAnnotation);
+		                if (kvp != null)
+		                {
+		                	loadedDict.Add(kvp[0], kvp[1]);
+		                }
                     }
                 }
 
@@ -498,14 +636,15 @@ public sealed class CfgFile
     /// </summary>
     /// <param name="line"></param>
     /// <param name="lineIdx"></param>
+    /// <param name="readAnnotations">Reference to the bool that is true when annotations were read (??)</param>
     /// <returns>A string array or null if failed to parse ( or didnt parse )</returns>
-    private string[]? ParseLine(string line, int lineIdx)
+    private string[]? ParseLine(string line, int lineIdx, ref bool readAnnotations)
     {
         // remove everything after the comment character
         int commentIndex = line.IndexOf(CfgCustomizer.CommentCharacter);
         string lineNoComments = commentIndex >= 0 ? line.Substring(0, commentIndex).Trim() : line;
 
-        string[] keyValuePairs = lineNoComments.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+        string[] keyValuePairs = lineNoComments.Split(';', StringSplitOptions.RemoveEmptyEntries);
 
         foreach (string pair in keyValuePairs)
         {
@@ -516,8 +655,7 @@ public sealed class CfgFile
             {
                 // get the values and add them in
                 string key = parts[0].Trim();
-                string value = parts[1].Trim().Trim('\"'); // this will need to change to say CfgCustomizer.QuotedValueCharacter or smth
-                // to support customization
+                string value = parts[1].Trim().Trim(CfgCustomizer.QuotedValueCharacter);
 
                 return [key, value];
             }
@@ -526,9 +664,9 @@ public sealed class CfgFile
                 _logger.Put(LogType.Warn, "Failed to parse a value; the value will not be added. Error encountered at:");
                 _logger.Put(LogType.Warn, $"Line {lineIdx} : {line}");
 
-                if (line.StartsWith("@annotation "))
+                if (line.StartsWith("@annotation ") && readAnnotations)
                 {
-                    _logger.Put(LogType.Warn, "\nThis error happened because annotations need to be on the first line of the file ( if you see this message, it means they weren't on the first line ). The annotations haven't been read.");
+                    _logger.Put(LogType.Warn, "Only 1 annotation declaration is permitted.");
                 }
 
                 return null;
@@ -561,7 +699,7 @@ public sealed class CfgFile
                 // first add annotations
                 if (_loadedAnnotations != null && _loadedAnnotations.Count > 0)
                 {
-                    string annotations = $"@annotation {string.Join(", ", _loadedAnnotations)}";
+                    string annotations = $"@annotation {string.Join($"{CfgCustomizer.AnnotationSeparator} ", _loadedAnnotations)}";
                     writer.WriteLine(annotations);
                 }
 
@@ -576,7 +714,7 @@ public sealed class CfgFile
                         {
                             if (CfgCustomizer.UseQuotedValues)
                             {
-                                writer.WriteLine($"{kvp.Key} {CfgCustomizer.KeyValueSeparator} \"{kvp.Value}\"");
+                                writer.WriteLine($"{kvp.Key} {CfgCustomizer.KeyValueSeparator} {CfgCustomizer.QuotedValueCharacter}{kvp.Value}{CfgCustomizer.QuotedValueCharacter}");
                             }
                             else
                             {
@@ -587,11 +725,11 @@ public sealed class CfgFile
                         {
                             if (CfgCustomizer.UseQuotedValues)
                             {
-                                writer.WriteLine($"{kvp.Key}{CfgCustomizer.KeyValueSeparator}\"{kvp.Value}\"");
+                                writer.WriteLine($"{kvp.Key} {CfgCustomizer.QuotedValueCharacter}{kvp.Value}{CfgCustomizer.QuotedValueCharacter}");
                             }
                             else
                             {
-                                writer.WriteLine($"{kvp.Key}{CfgCustomizer.KeyValueSeparator}{kvp.Value}");
+                                writer.WriteLine($"{kvp.Key} {kvp.Value}");
                             }
                         }
                     }
