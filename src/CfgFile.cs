@@ -28,8 +28,8 @@ public sealed class CfgFile
     /// </summary>
     /// <param name="config">The config</param>
     /// <param name="clearExisting">If true, clears existing config</param>
-    #pragma warning disable CS8604 // Possible null reference argument.
-    #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+#pragma warning disable CS8604 // Possible null reference argument.
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
     public OperationResult CreateFrom(IConfig config, bool clearExisting = true)
     {
         if (clearExisting) { Clear(); }
@@ -547,87 +547,97 @@ public sealed class CfgFile
     /// <returns><see cref="OperationResult"/></returns>
     public OperationResult OpenFile(string path)
     {
+        string[] lines;
+
         try
         {
-            FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None);
-
-            using (StreamReader reader = new(stream))
-            {
-                int lineIdx = 0;
-                List<string>? readAnnotations = null;
-                Dictionary<string, string> loadedDict = new();
-
-                bool foundFirstMeaningfulLine = false;
-                bool readAnnotation = false; // if true it means annotations were read. this value is only to allow 1 annotation declaration
-                
-                while (!reader.EndOfStream)
-                {
-                    lineIdx++;
-                    string? uglyLine = reader.ReadLine(); // ugly because it can contain extra spaces n stuff
-
-                    if (uglyLine != null)
-                    {
-                        string line = uglyLine.Trim();
-
-                        if (line.Length == 0 || line.StartsWith(CfgCustomizer.CommentCharacter)) { continue; } // skip useless lines
-
-                        if (!foundFirstMeaningfulLine)
-                        {
-                            foundFirstMeaningfulLine = true;
-                            
-                            if (line.StartsWith("@annotation "))
-			                {
-			                	if (readAnnotation)
-			                	{
-			                		_logger.Put(LogType.Error, "Only 1 annotation declaration is allowed.");
-			                		continue;
-			                	}
-
-			                	string annotations = line.Remove(0, 11).Trim();
-			                	readAnnotations = annotations.Split(CfgCustomizer.AnnotationSeparator, StringSplitOptions.RemoveEmptyEntries).ToList();
-
-			                	for (int i = 0; i < readAnnotations.Count; i++)
-                                {
-			                		readAnnotations[i] = readAnnotations[i].Trim();
-                                }
-
-			                	if (readAnnotations.Count > 0)
-			                	{
-			                		_loadedAnnotations = readAnnotations;
-			                		readAnnotation = true;
-			                	}
-
-			                	continue;
-			                }
-                        }
-
-                        string[]? kvp = ParseLine(line, lineIdx, ref readAnnotation);
-		                if (kvp != null)
-		                {
-		                	loadedDict.Add(kvp[0], kvp[1]);
-		                }
-                    }
-                }
-
-                _loadedConfig = loadedDict;
-            }
+            lines = File.ReadAllLines(path);
         }
-        catch (FileNotFoundException)
+        catch
         {
-            _logger.Put(LogType.Error, $"File {path} not found");
-            return OperationResult.FileNotFound;
-        }
-        catch (DirectoryNotFoundException)
-        {
-            _logger.Put(LogType.Error, $"File {path} not found");
-            return OperationResult.FileNotFound;
-        }
-        catch (Exception exception)
-        {
-            _logger.Put(LogType.Error, $"OpenFile has caught an undefined exception: {exception}");
+            _logger.Put(LogType.Error, $"Config file not found at path {path}");
             return OperationResult.Error;
         }
-        
+
+        List<string> cleanLines = lines.Select(line =>
+        {
+            int commentIdx = line.IndexOf(CfgCustomizer.CommentCharacter);
+            return commentIdx >= 0 ? line.Substring(0, commentIdx).Trim() : line.Trim();
+        }).Where(line => !string.IsNullOrWhiteSpace(line)).ToList();
+
+        List<string>? readAnnotations = null;
+        Dictionary<string, string> loadedDict = new();
+
+        bool foundFirstMeaningfulLine = false;
+        bool readAnnotation = false; // if true it means annotations were read. this value is only to allow 1 annotation declaration
+
+        foreach (string line in cleanLines)
+        {
+            string clearLine = line.Trim();
+
+            if (!foundFirstMeaningfulLine)
+            {
+                foundFirstMeaningfulLine = true;
+
+                if (clearLine.StartsWith("@annotation "))
+                {
+                    if (readAnnotation)
+                    {
+                        _logger.Put(LogType.Error, "Only 1 annotation declaration is allowed.");
+                        continue;
+                    }
+
+                    string annotations = clearLine.Remove(0, 11).Trim();
+                    readAnnotations = annotations.Split(CfgCustomizer.AnnotationSeparator, StringSplitOptions.RemoveEmptyEntries).ToList();
+
+                    for (int i = 0; i < readAnnotations.Count; i++)
+                    {
+                        readAnnotations[i] = readAnnotations[i].Trim();
+                    }
+
+                    if (readAnnotations.Count > 0)
+                    {
+                        _loadedAnnotations = readAnnotations;
+                        readAnnotation = true;
+                    }
+
+                    continue;
+                }
+                else
+                {
+                    string[]? kvp = ParseLine(clearLine, Array.IndexOf(lines, line), ref readAnnotation);
+                    if (kvp != null)
+                    {
+                        try
+                        {
+                        loadedDict.Add(kvp[0], kvp[1]);
+                        }
+                        catch (ArgumentException)
+                        {
+                            _logger.Put(LogType.Warn, $"Duplicate value found on line {Array.IndexOf(lines, line)}");
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            string[]? parsed = ParseLine(clearLine, Array.IndexOf(lines, line), ref readAnnotation);
+            if (parsed != null)
+            {
+                try
+                {
+                loadedDict.Add(parsed[0], parsed[1]);
+                }
+                catch (ArgumentException)
+                {
+                    _logger.Put(LogType.Warn, $"Duplicate value found on line {Array.IndexOf(lines, line)}");
+                    continue;
+                }
+            }
+        }
+
+        _loadedConfig = loadedDict;
+
         return OperationResult.Ok;
     }
 
@@ -685,6 +695,9 @@ public sealed class CfgFile
     /// <returns>Result of the operation as <see cref="OperationResult"/></returns>
     public OperationResult SaveFile(string path, bool applyBeforeSave = false, bool overwriteIfExists = true)
     {
+        // this also could be changed to use the same approach as in OpenFile; where theres some list with lines and then we write
+        // those lines at once using File.WriteAllLines but rn this doesnt need that
+
         bool overwrite = !overwriteIfExists;
 
         if (applyBeforeSave)
